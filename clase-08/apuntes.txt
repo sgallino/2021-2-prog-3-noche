@@ -1,0 +1,46 @@
+// Análisis de las clases que necesitamos para la autenticación.
+- Usuario
+- Admin
+- Login
+- Logout
+
+Single Responsability Principle (Principio de Responsabilidad Única)
+--------------------------------------------------------------------
+Es un principio de programación que indica que cada clase en nuestro sistema debería tener solo una
+única responsabilidad. Y todo lo que contiene debería limitarse a resolver solo esa responsabilidad.
+Cualquier otra cosa, es delegada a otra clase.
+
+¿Qué sería una responsabilidad?
+La idea de una responsabilidad es que si tenemos que alterar algo en el funcionamiento, solo sea una
+clase la encargada de manejar eso.
+Es decir, la idea de responsabilidad está asociada a alguna funcionalidad u objetivo a cumplir.
+Estas funcionalidades pueden ser más o menos abarcativas en su "scope" (alcance).
+Sea cual sea el alcance que le damos, la idea es que solamente esa clase se responsabilice de esa
+funcionalidad.
+
+En base a esto, podemos ayudarnos a detectar qué clases vamos a estar necesitando.
+Si definimos cuáles son las responsabilidades/funcionalidades que nuestro sistema requiere, y cómo
+están agrupadas (si lo están), podemos estar definiendo una idea de las clases que vamos a necesitar.
+
+Probemos de aplicar este hilo de razonamiento al módulo de autenticación que tenemos que crear.
+
+# Responsabilidades
+- Obtener datos del usuario.
+- Registrar nuevos usuarios.
+- Verificar credenciales del usuario.
+- Iniciar sesión.
+- Cerrar sesión.
+- Verificar estado de autenticación.
+- Obtener usuario autenticado.
+
+# Clases para las responsabilidades
+Usuario
+- Obtener datos del usuario.
+- Registrar nuevos usuarios.
+
+Auth
+- Verificar credenciales del usuario.
+- Iniciar sesión.
+- Cerrar sesión.
+- Verificar estado de autenticación.
+- Obtener usuario autenticado.

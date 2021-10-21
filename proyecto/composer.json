@@ -1,0 +1,18 @@
+{
+    "name": "da-vinci/cms",
+    "description": "Proyecto de PHP en POO de un CMS",
+    "authors": [
+        {
+            "name": "Jean Paul Ferreira",
+            "email": "x@x.com"
+        }
+    ],
+    "require": {
+        "ext-pdo": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "./app"
+        }
+    }
+}

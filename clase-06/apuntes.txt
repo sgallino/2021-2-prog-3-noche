@@ -1,0 +1,10 @@
+# PDO
+PDO es una clase de php que se enfoca en el manejo de las interacciones con una base de datos SQL.
+La principal ventaja de PDO con respecto a otras APIs de php, es que es "agnóstica" de la base de datos
+específica. O para ser precisos, del "sistema de administración de bases de datos relacionales" (RDBMS).
+
+mysqli, por ejemplo, funciona _solo_ para MySQL/MariaDB. Pero si necesitamos usar otra base como SQLite
+o PostgreSQL, no nos sirven. Tenemos que usar otra API que tiene funciones diferentes.
+
+Vamos a crear un archivo de prueba de la clase PDO.
+

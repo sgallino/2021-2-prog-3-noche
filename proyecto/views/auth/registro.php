@@ -3,7 +3,7 @@
 
     <p>Creá tu cuenta y empezá a obtener incontables beneficios. ¡Es muy fácil!</p>
 
-    <form action="registro" method="post">
+    <form action="<?= \App\Router::urlTo('registro');?>" method="post">
         <div class="mb-3">
             <label for="email" class="form-label">Email</label>
             <input type="email" id="email" name="email" class="form-control">

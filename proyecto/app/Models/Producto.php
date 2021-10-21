@@ -44,11 +44,26 @@ class Producto
         return $listaProductos;
     }
 
-    public function findByPk($pk)
+    /**
+     * @param int $pk
+     * @return Producto|null
+     */
+    public function findByPk(int $pk): ?Producto
     {
         // Pedimos la conexión a la clase encargada de manejarla.
         $db = Connection::getConnection();
-        // TODO: implementar...
+        $query = "SELECT * FROM productos
+                    WHERE id_producto = ?";
+        $stmt = $db->prepare($query);
+        $stmt->execute([$pk]);
+        $stmt->setFetchMode(\PDO::FETCH_CLASS, self::class);
+        $prod = $stmt->fetch();
+
+        if(!$prod) {
+            return null;
+        }
+
+        return $prod;
     }
 
     public function create($data)

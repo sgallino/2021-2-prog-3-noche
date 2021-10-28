@@ -3,8 +3,14 @@ namespace App\Models;
 
 use App\Database\Connection;
 
-class Producto
+class Producto extends Model
 {
+    // Configuramos la clase Model.
+    // Sobrescribimos las propiedades de Model con los valores correspondientes a este modelo.
+    protected $table = 'productos';
+    protected $primaryKey = 'id_producto';
+    protected $attributes = ['id_categoria', 'id_marca', 'nombre', 'descripcion', 'precio', 'imagen'];
+
     protected $id_producto;
     protected $id_categoria;
     protected $id_marca;
@@ -21,56 +27,66 @@ class Producto
      *
      * @return Producto[]
      */
-    public function all(): array
-    {
-        $db = Connection::getConnection();
-        $query = "SELECT * FROM productos";
-        $stmt = $db->prepare($query);
-        $stmt->execute();
-//        $salida = [];
+//    public function all(): array
+//    {
+//        $db = Connection::getConnection();
+//        $query = "SELECT * FROM productos";
+//        $stmt = $db->prepare($query);
+//        $stmt->execute();
+////        $salida = [];
+////
+////        while($fila = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+////            $prod = new Producto();
+////            $prod->setIdProducto($fila['id_producto']);
+////            $prod->setNombre($fila['nombre']);
+////            $prod->setIdCategoria($fila['id_categoria']);
+////            // ...
+////            $salida[] = $prod;
+////        }
+//        // Definimos a PDOStatement que queremos que cada registro sea una instancia de Producto.
+//        $stmt->setFetchMode(\PDO::FETCH_CLASS, self::class);
+//        $listaProductos = $stmt->fetchAll();
 //
-//        while($fila = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-//            $prod = new Producto();
-//            $prod->setIdProducto($fila['id_producto']);
-//            $prod->setNombre($fila['nombre']);
-//            $prod->setIdCategoria($fila['id_categoria']);
-//            // ...
-//            $salida[] = $prod;
-//        }
-        // Definimos a PDOStatement que queremos que cada registro sea una instancia de Producto.
-        $stmt->setFetchMode(\PDO::FETCH_CLASS, self::class);
-        $listaProductos = $stmt->fetchAll();
-
-        return $listaProductos;
-    }
+//        return $listaProductos;
+//    }
 
     /**
      * @param int $pk
      * @return Producto|null
      */
-    public function findByPk(int $pk): ?Producto
-    {
-        // Pedimos la conexión a la clase encargada de manejarla.
-        $db = Connection::getConnection();
-        $query = "SELECT * FROM productos
-                    WHERE id_producto = ?";
-        $stmt = $db->prepare($query);
-        $stmt->execute([$pk]);
-        $stmt->setFetchMode(\PDO::FETCH_CLASS, self::class);
-        $prod = $stmt->fetch();
+//    public function findByPk(int $pk): ?Producto
+//    {
+//        // Pedimos la conexión a la clase encargada de manejarla.
+//        $db = Connection::getConnection();
+//        $query = "SELECT * FROM productos
+//                    WHERE id_producto = ?";
+//        $stmt = $db->prepare($query);
+//        $stmt->execute([$pk]);
+//        $stmt->setFetchMode(\PDO::FETCH_CLASS, self::class);
+//        $prod = $stmt->fetch();
+//
+//        if(!$prod) {
+//            return null;
+//        }
+//
+//        return $prod;
+//    }
 
-        if(!$prod) {
-            return null;
-        }
-
-        return $prod;
-    }
-
-    public function create($data)
-    {
-        $db = Connection::getConnection();
-        // TODO: implementar...
-    }
+//    public function create($data)
+//    {
+//        $db = Connection::getConnection();
+//        $query = "INSERT INTO productos (nombre, id_categoria, id_marca, descripcion, precio, imagen)
+//                  VALUES (:nombre, :id_categoria, :id_marca, :descripcion, :precio, :imagen)";
+//        $stmt = $db->prepare($query);
+//        $stmt->execute([
+//            'nombre'        => $data['nombre'],
+//            'id_categoria'  => $data['id_categoria'],
+//            'id_marca'      => $data['id_marca'],
+//            'precio'        => $data['precio'],
+//            'descripcion'   => $data['descripcion'],
+//            'imagen'        => $data['imagen'],
+//        ]);
+//    }
 
     public function update($data)
     {

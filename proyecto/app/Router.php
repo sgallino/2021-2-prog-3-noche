@@ -282,6 +282,17 @@ class Router
     }
 
     /**
+     * Redirecciona al $path indicado.
+     *
+     * @param string $path
+     */
+    public static function redirect(string $path = ''): string
+    {
+        header('Location: ' . self::urlTo($path));
+        exit;
+    }
+
+    /**
      * @param array[] $matches
      */
     protected static function setRouteParameters(array $matches)

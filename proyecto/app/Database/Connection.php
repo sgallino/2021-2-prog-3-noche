@@ -31,6 +31,12 @@ class Connection
             try {
                 self::$db = new PDO("mysql:host=" . self::$host . ";dbname=" . self::$base . ";charset=utf8mb4", self::$user, self::$pass);
 //                echo "Conexión a la base de datos inicializada...<br>";
+                // A partir de php 8+, cuando una consulta SQL falla por defecto lanza una PDOException.
+                // En las versiones anteriores, por defecto php no imprimía nada, sino que "fallaba
+                // silenciosamente".
+                // Con esta instrucción, configuramos para que PDO siempre tire esta PDOException,
+                // indistintamente de la versión de php.
+                self::$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             } catch(PDOException $e) {
                 echo "Ocurrió un problema al conectar con la base de datos :(";
                 exit;

@@ -34,6 +34,9 @@ $auth = new Auth;
                 <td>$ <?= $producto->getPrecio();?></td>
                 <td>
                     <a href="<?= \App\Router::urlTo('productos/' . $producto->getIdProducto());?>">Ver</a>
+                    <form action="<?= \App\Router::urlTo('productos/' . $producto->getIdProducto() . "/eliminar");?>" method="post">
+                        <button class="btn btn-outline-danger">Eliminar</button>
+                    </form>
                 </td>
             </tr>
         <?php

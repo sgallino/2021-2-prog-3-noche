@@ -27,6 +27,26 @@ class Model
     protected $attributes = [];
 
     /**
+     * @var array - Las relaciones que el modelo tiene. Está dividido en 4 claves: 1-1, 1-n, n-1, n-n.
+     */
+    protected $relations = [
+        '1-1' => [],
+        '1-n' => [],
+        'n-1' => [
+            // Cada relación va a llevar como clave el nombre de la clase que representa la tabla
+            // a la que lo asociamos.
+            // Como valor, llevará los datos que se necesiten, como el nombre de la FK.
+            // Ej:
+//            self::class => [
+//                'fk' => 'campo_fk',   // <--- El campo de la FK
+//                'prop' => 'propiedad', // <--- La propiedad dentro de la clase donde guardar la
+//                                              instancia relacionada.
+//            ]
+        ],
+        'n-n' => [],
+    ];
+
+    /**
      * Obtiene todos los productos.
      *
      * @return static[]
@@ -58,10 +78,11 @@ class Model
 
     /**
      * @param int $pk
+     * @param array $relations - Array con las clases de las relaciones que se quieren cargar.
      * @return static|null
      */
 //    public function findByPk(int $pk): ?static // A partir de php 8+, podemos tipar el tipo de retorno como "static", indicando que tiene que ser la clase que ejecuta el método.
-    public function findByPk(int $pk): ?Model
+    public function findByPk(int $pk, array $relations = []): ?Model
     {
         // Pedimos la conexión a la clase encargada de manejarla.
         $db = Connection::getConnection();
@@ -76,7 +97,45 @@ class Model
             return null;
         }
 
+        // Cargamos las relaciones, en caso de que se hayan pedido.
+        $model->loadRelations($relations);
+
         return $model;
+    }
+
+    /**
+     * Carga las relaciones en el modelo.
+     *
+     * @param array $relations - Array con las clases de las relaciones del modelo. Deben ser de las definidas en la propiedad $relations. Ej: [Categoria::class, Saraza::class]
+     */
+    public function loadRelations(array $relations = [])
+    {
+        // $relations = [Categoria::class, Saraza::class]]
+        // En principio, solo vamos a levantar las relaciones de 'n-1'.
+        // TODO: Implementar las otras relaciones.
+        // Recorremos las relaciones, y buscamos la relación correspondiente a esta.
+        foreach($relations as $relation) {
+//            echo "Cargando la relación... " . $relation . "<br>";
+            // Preguntamos si está definida esta relación
+            if(isset($this->relations['n-1'][$relation])) {
+                $relationData = $this->relations['n-1'][$relation];
+//                echo "Relación encontrada.<br>";
+//                echo "FK: " . $relationData['fk'] . "<br>";
+//                echo "Propiedad destino: " . $relationData['prop'] . "<br>";
+                // Instanciamos la clase relacionada.
+                // Ej: $relation = \App\Models\Categoria
+                /** @var Model $relationObj */
+                $relationObj = new $relation; // Podemos usar el valor de la variable como nombre de clase. Ej: new \App\Models\Categoria
+                // Llamamos al método "findByPk" del modelo relacionado para traerlo.
+                // El valor de la PK va a ser el valor del atributo de la "FK" en _este_ (por ejemplo,
+                // Producto) modelo.
+                $fk = $this->{$relationData['fk']}; // Ej: $this->id_categoria
+                $obj = $relationObj->findByPk($fk);
+
+                // Guardamos el objeto en la propiedad que se definió para este modelo.
+                $this->{$relationData['prop']} = $obj; // Ej: $this->categoria = $obj;
+            }
+        }
     }
 
     /**
@@ -164,5 +223,18 @@ class Model
             $values[] = $data[$field];
         }
         return $values;
+    }
+
+    /**
+     * @param $pk
+     * @throws \PDOException
+     */
+    public function delete($pk): void
+    {
+        $db = Connection::getConnection();
+        $query = "DELETE FROM " . $this->table . "
+                  WHERE " . $this->primaryKey . " = ?";
+        $stmt = $db->prepare($query);
+        $stmt->execute([$pk]);
     }
 }

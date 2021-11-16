@@ -3,9 +3,8 @@
 
 use App\Auth\Auth;
 
-$messageSuccess = $_SESSION['message_success'] ?? null;
-$messageError = $_SESSION['message_error'] ?? null;
-unset($_SESSION['message_success'], $_SESSION['message_error']);
+$messageSuccess = \App\Session\Session::flash('message_success');
+$messageError = \App\Session\Session::flash('message_error');
 
 $auth = new Auth();
 ?>

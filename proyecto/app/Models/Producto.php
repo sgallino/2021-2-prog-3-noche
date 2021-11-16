@@ -10,6 +10,21 @@ class Producto extends Model
     protected $table = 'productos';
     protected $primaryKey = 'id_producto';
     protected $attributes = ['id_categoria', 'id_marca', 'nombre', 'descripcion', 'precio', 'imagen'];
+    protected $relations = [
+        'n-1' => [
+            // La clave es el nombre de la clase relacionada.
+            Categoria::class => [
+                // El nombre de la propiedad que tiene el valor de la FK de la relación.
+                'fk' => 'id_categoria',
+                // El nombre de la prop de _esta_ clase donde queeremos guardar la instancia.
+                'prop' => 'categoria',
+            ],
+            Marca::class => [
+                'fk' => 'id_marca',
+                'prop' => 'marca',
+            ],
+        ]
+    ];
 
     protected $id_producto;
     protected $id_categoria;
@@ -23,78 +38,16 @@ class Producto extends Model
     protected $cuotas_sin_interes;
 
     /**
-     * Obtiene todos los productos.
-     *
-     * @return Producto[]
+     * @var Categoria
      */
-//    public function all(): array
-//    {
-//        $db = Connection::getConnection();
-//        $query = "SELECT * FROM productos";
-//        $stmt = $db->prepare($query);
-//        $stmt->execute();
-////        $salida = [];
-////
-////        while($fila = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-////            $prod = new Producto();
-////            $prod->setIdProducto($fila['id_producto']);
-////            $prod->setNombre($fila['nombre']);
-////            $prod->setIdCategoria($fila['id_categoria']);
-////            // ...
-////            $salida[] = $prod;
-////        }
-//        // Definimos a PDOStatement que queremos que cada registro sea una instancia de Producto.
-//        $stmt->setFetchMode(\PDO::FETCH_CLASS, self::class);
-//        $listaProductos = $stmt->fetchAll();
-//
-//        return $listaProductos;
-//    }
+    protected $categoria;
 
     /**
-     * @param int $pk
-     * @return Producto|null
+     * @var Marca
      */
-//    public function findByPk(int $pk): ?Producto
-//    {
-//        // Pedimos la conexión a la clase encargada de manejarla.
-//        $db = Connection::getConnection();
-//        $query = "SELECT * FROM productos
-//                    WHERE id_producto = ?";
-//        $stmt = $db->prepare($query);
-//        $stmt->execute([$pk]);
-//        $stmt->setFetchMode(\PDO::FETCH_CLASS, self::class);
-//        $prod = $stmt->fetch();
-//
-//        if(!$prod) {
-//            return null;
-//        }
-//
-//        return $prod;
-//    }
-
-//    public function create($data)
-//    {
-//        $db = Connection::getConnection();
-//        $query = "INSERT INTO productos (nombre, id_categoria, id_marca, descripcion, precio, imagen)
-//                  VALUES (:nombre, :id_categoria, :id_marca, :descripcion, :precio, :imagen)";
-//        $stmt = $db->prepare($query);
-//        $stmt->execute([
-//            'nombre'        => $data['nombre'],
-//            'id_categoria'  => $data['id_categoria'],
-//            'id_marca'      => $data['id_marca'],
-//            'precio'        => $data['precio'],
-//            'descripcion'   => $data['descripcion'],
-//            'imagen'        => $data['imagen'],
-//        ]);
-//    }
+    protected $marca;
 
     public function update($data)
-    {
-        $db = Connection::getConnection();
-        // TODO: implementar...
-    }
-
-    public function delete()
     {
         $db = Connection::getConnection();
         // TODO: implementar...
@@ -210,5 +163,37 @@ class Producto extends Model
     public function setImagen($imagen)
     {
         $this->imagen = $imagen;
+    }
+
+    /**
+     * @return Categoria
+     */
+    public function getCategoria(): Categoria
+    {
+        return $this->categoria;
+    }
+
+    /**
+     * @param Categoria $categoria
+     */
+    public function setCategoria(Categoria $categoria): void
+    {
+        $this->categoria = $categoria;
+    }
+
+    /**
+     * @return Marca
+     */
+    public function getMarca(): Marca
+    {
+        return $this->marca;
+    }
+
+    /**
+     * @param Marca $marca
+     */
+    public function setMarca(Marca $marca): void
+    {
+        $this->marca = $marca;
     }
 }

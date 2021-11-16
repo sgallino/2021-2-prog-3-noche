@@ -7,6 +7,7 @@ use App\Models\Categoria;
 use App\Models\Marca;
 use App\Models\Producto;
 use App\Router;
+use App\Session\Session;
 use App\Validation\Validator;
 use App\View;
 
@@ -24,7 +25,16 @@ class ProductoController
     {
         $parameters = Router::getRouteParameters();
         $producto = new Producto();
-        $producto = $producto->findByPk($parameters['id']);
+//        $producto = $producto->findByPk($parameters['id']);
+        // Pedimos que se carguen también las relaciones.
+        $relations = [Categoria::class, Marca::class];
+        $producto = $producto->findByPk($parameters['id'], $relations);
+//        echo "<pre>";
+//        print_r($relations);
+//        echo "</pre>";
+//        echo "<pre>";
+//        print_r($producto);
+//        echo "</pre>";
         $view = new View();
         $view->render('productos/ver', ['producto' => $producto]);
     }
@@ -32,18 +42,11 @@ class ProductoController
     public static function crearForm()
     {
         // Levantamos los mensajes de error y los datos viejos, si es que existen.
-        if(isset($_SESSION['old_data'])) {
-            $oldData = $_SESSION['old_data'];
-            unset($_SESSION['old_data']);
-        } else {
-            $oldData = [];
-        }
-        if(isset($_SESSION['errors'])) {
-            $errors = $_SESSION['errors'];
-            unset($_SESSION['errors']);
-        } else {
-            $errors = [];
-        }
+        $errors = Session::flash('errors', []);
+        $oldData = Session::flash('old_data', [
+            'id_categoria' => '',
+            'id_marca' => '',
+        ]);
 //        $marca = new Marca();
 //        $marcas = $marca->all();
         $marcas = (new Marca())->all();
@@ -72,8 +75,8 @@ class ProductoController
         ]);
 
         if($validator->fails()) {
-            $_SESSION['old_data'] = $_POST;
-            $_SESSION['errors'] = $validator->getErrors();
+            Session::set('old_data', $_POST);
+            Session::set('errors', $validator->getErrors());
             // Redireccionamos al form de nuevo...
             Router::redirect('productos/nuevo');
         }
@@ -93,15 +96,30 @@ class ProductoController
         try {
             (new Producto())->create($data);
 
-            $_SESSION['message_success'] = "El producto fue creado con éxito.";
+            Session::set('message_success', "El producto fue creado con éxito.");
             Router::redirect('productos');
 //        header("Location: " . Router::urlTo('productos'));
 //        exit;
         } catch(\PDOException $e) {
             // Error al grabar el producto.
-            $_SESSION['message_error'] = "Ocurrió un error inesperado al tratar de grabar el producto. Por favor, probá de nuevo más tarde.";
-            $_SESSION['old_data'] = $_POST;
+            Session::set('message_error', "Ocurrió un error inesperado al tratar de grabar el producto. Por favor, probá de nuevo más tarde.");
+            Session::set('old_data', $_POST);
             Router::redirect('productos/nuevo');
         }
+    }
+
+    public static function eliminar()
+    {
+        $params = Router::getRouteParameters();
+
+        try {
+            (new Producto())->delete($params['id']);
+
+            Session::set('message_success', "Producto eliminado exitosamente.");
+        } catch(\Exception $e) {
+            Session::set('message_error', "Ocurrió un error inesperado al tratar de eliminar el producto. Por favor, probá de nuevo más tarde.");
+        }
+
+        Router::redirect('productos');
     }
 }

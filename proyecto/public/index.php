@@ -6,7 +6,8 @@
 
 require_once __DIR__ . "/../vendor/autoload.php";
 
-session_start();
+//session_start();
+\App\Session\Session::start();
 
 $basePath = realpath(__DIR__ . "/..");
 
@@ -47,6 +48,7 @@ $router->post('/cerrar-sesion', [AuthController::class, 'logout']);
 $router->get('/productos', [ProductoController::class, 'index']);
 $router->get('/productos/nuevo', [ProductoController::class, 'crearForm']);
 $router->post('/productos/nuevo', [ProductoController::class, 'crear']);
+$router->post('/productos/{id}/eliminar', [ProductoController::class, 'eliminar']);
 // Entre {} vamos a definir los "parámetros" de las rutas.
 // Un parámetro es un valor que es dinámico, y que queremos poder obtener luego para manipularlo.
 // Por ejemplo, si tenemos una ruta:

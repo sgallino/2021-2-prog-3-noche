@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Database\Connection;
+use PDO;
 
 /**
  * Clase modelo de base.
@@ -49,14 +50,37 @@ class Model
     /**
      * Obtiene todos los productos.
      *
+     * @param array $where - Las cláusulas de búsqueda. Cada valor del array debe ser un array de 3 posiciones: campo, operador, valor. Ej: ['nombre', 'LIKE', '%TV%'] o ['categoria_id', '=', 2].
+     * @param array $relations - Las relaciones que cargar para cada registro.
      * @return static[]
      */
-    public function all(): array
+    public function all(array $where = [], array $relations = []): array
     {
         $db = Connection::getConnection();
         $query = "SELECT * FROM " . $this->table;
+
+        // Cláusulas de búsqueda.
+        $whereValues = [];
+        if(count($where) > 0) {
+            $whereData = [];
+            foreach($where as $whereItem) {
+                // $whereItem[0] => El campo.
+                // $whereItem[1] => El operador.
+                // $whereItem[2] => El valor.
+                // Armamos el holder denominado usando el mismo de la columna.
+                // Ej:
+                // $whereData[] = 'nombre LIKE :nombre';
+                // $whereData['nombre'] = '%TV%';
+                $whereData[] = $whereItem[0] . " " . $whereItem[1] . " :" . $whereItem[0];
+                $whereValues[$whereItem[0]] = $whereItem[2];
+            }
+
+            // Agregamos la cláusula del WHERE al query.
+            $query .= " WHERE " . implode(" AND ", $whereData);
+        }
+
         $stmt = $db->prepare($query);
-        $stmt->execute();
+        $stmt->execute($whereValues);
 
         // Definimos a PDOStatement que queremos que cada registro sea una instancia de Producto.
         // self, recordamos, se reemplaza por el nombre la clase en la que estamos.
@@ -70,10 +94,101 @@ class Model
 
 //        echo "Valor de self::class: " . self::class . "<br>";
 //        echo "Valor de static::class: " . static::class . "<br>";
-        $stmt->setFetchMode(\PDO::FETCH_CLASS, static::class);
-        $registros = $stmt->fetchAll();
+        $stmt->setFetchMode(PDO::FETCH_CLASS, static::class);
+        $registers = $stmt->fetchAll();
 
-        return $registros;
+        if(count($relations) > 0) {
+            // Cargamos las relaciones.
+            // Esta "solución" tiene el problema de que estamos ejecutando un query para cargar las
+            // relaciones por cada registro que obtuvimos, generando el problema conocido como
+            // "query N+1".
+//            /** @var self $registro */
+//            foreach($registers as $registro) {
+//                $registro->loadRelations($relations);
+//            }
+            // En su lugar, vamos a hacer otro approach que requiere un poco más de código en php,
+            // pero que baje muy considerablemente el impacto a la base de datos, sobretodo mientras
+            // más data haya.
+            $registers = $this->loadRelationsForManyItems($registers, $relations);
+        }
+
+        return $registers;
+    }
+
+    /**
+     * Carga todas las relaciones pedidas para cada uno de los modelos del array $registers,
+     * evitando el problema de "query N+1".
+     *
+     * @param array $registers
+     * @param array $relations
+     * @return array
+     */
+    protected function loadRelationsForManyItems(array $registers, array $relations): array
+    {
+        /*
+         * Para resolver esto, vamos a necesitar crear un query que traiga solo los valores requeridos
+         * para una determinada relación.
+         * Por ejemplo, si los $registers que traemos son productos, y entre esos productos solo hay
+         * en uso las categorías [1, 2, 5, 7, 10], entonces solo vamos a traer con un SELECT los datos
+         * de las categorías cuyo id esté entre los valores [1, 2, 5, 7, 10].
+         * Por lo tanto, lo primero que necesitamos es obtener los ids de la relación.
+         */
+        // TODO: Implementar para todos los tipos de relaciones.
+        foreach($relations as $relation) {
+            if(isset($this->relations['n-1'][$relation])) {
+                // Obtenemos las fks de los datos de cada registro de $registers.
+                $relationData = $this->relations['n-1'][$relation];
+                $fkName = $relationData['fk'];
+                $relationProp = $relationData['prop'];
+                $fks = [];
+                foreach($registers as $register) {
+                    // Preguntamos si el valor ya existe en array, y sino lo agregamos.
+                    $fkValue = $register->{$fkName};
+                    if(!in_array($fkValue, $fks)) {
+                        $fks[] = $fkValue;
+                    }
+                }
+
+                // Hacemos un query para traer todos los registros que tengan como PK esos valores.
+                // Instanciamos una clase de la relación (ej: App\Models\Categoria) para cargar los
+                // modelos de esa clase.
+                $relatedObject = new $relation;
+                $relatedCollection = $relatedObject->findAllByPk($fks);
+
+                // Actualizamos las claves del array de la colección de modelos relacionados para que
+                // utilicen la PK del modelo.
+                $sortedCollection = [];
+                /** @var static $item */
+                foreach($relatedCollection as $item) {
+                    $pkName = $item->primaryKey;
+                    $sortedCollection[$item->{$pkName}] = $item;
+                }
+
+                // Recorremos los $registers de nuevo para asociarles el modelo relacionado.
+                foreach($registers as $register) {
+                    $relatedFk = $register->{$fkName};
+                    $register->{$relationProp} = $sortedCollection[$relatedFk];
+                }
+            }
+        }
+        return $registers;
+    }
+
+    /**
+     * @param array $pks
+     * @return array
+     */
+    public function findAllByPk(array $pks): array
+    {
+        $db = Connection::getConnection();
+        $holders = implode(', ', array_fill(0, count($pks), '?'));
+        $query = "SELECT * FROM " . $this->table . "
+                WHERE " . $this->primaryKey . " IN (" . $holders . ")";
+        $stmt = $db->prepare($query);
+        $stmt->execute($pks);
+        $stmt->setFetchMode(PDO::FETCH_CLASS, static::class);
+
+        return $stmt->fetchAll();
     }
 
     /**
@@ -88,9 +203,10 @@ class Model
         $db = Connection::getConnection();
         $query = "SELECT * FROM " . $this->table . "
                     WHERE " . $this->primaryKey . " = ?";
+//        echo "Ejecutando el query: " . $query . " con el id: " . $pk . "<br>";
         $stmt = $db->prepare($query);
         $stmt->execute([$pk]);
-        $stmt->setFetchMode(\PDO::FETCH_CLASS, static::class);
+        $stmt->setFetchMode(PDO::FETCH_CLASS, static::class);
         $model = $stmt->fetch();
 
         if(!$model) {

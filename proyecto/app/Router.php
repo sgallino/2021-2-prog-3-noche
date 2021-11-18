@@ -2,12 +2,14 @@
 
 namespace App;
 
+use App\Utilities\Str;
+
 class Router
 {
     /** @var string */
     private $baseAppPath;
-    /** @var string */
-    private $publicPath;
+    /** @var string - La ruta absoluta a la carpeta public dentro del filesystem. */
+    private static $publicPath;
     /** @var string - La URL absoluta a la carpeta raíz del proyecto para el cliente. */
     private static $baseUrlPath;
 //    private $appPath;
@@ -45,7 +47,7 @@ class Router
         // Normalizamos las "\" a "/".
         $this->baseAppPath = str_replace('\\', '/', $baseAppPath);
 //        $this->appPath = $this->baseAppPath . "/app";
-        $this->publicPath = $this->baseAppPath . "/public";
+        self::$publicPath = $this->baseAppPath . "/public";
 //        $this->viewsPath = $this->baseAppPath . "/views";
         $this->generateBaseUrlPath();
     }
@@ -77,9 +79,9 @@ class Router
         $fullBase = $protocolo . "://" . $host . $port;
 
         // Y ahora hacemos el reemplazo de fullBase en publicPath para generar el valor final.
-        self::$baseUrlPath = str_replace($_SERVER['DOCUMENT_ROOT'], $fullBase, $this->publicPath);
+        self::$baseUrlPath = str_replace($_SERVER['DOCUMENT_ROOT'], $fullBase, self::$publicPath);
 //        echo "<pre>";
-//        var_dump($this->publicPath, $fullBase, self::$baseUrlPath);
+//        var_dump(self::$publicPath, $fullBase, self::$baseUrlPath);
 //        print_r($_SERVER);
 //        echo "</pre>";
     }
@@ -125,22 +127,6 @@ class Router
         $method = $_SERVER['REQUEST_METHOD'];
         $route = $this->parseUrlIntoRoute($_SERVER['REQUEST_URI']);
 
-//        // Extramos la ruta a partir de la URL y el publicPath.
-//        $urlWithDocumentRoot = $_SERVER['DOCUMENT_ROOT'] . $url;
-//        $route = str_replace($this->publicPath, "", $urlWithDocumentRoot);
-//        echo '<pre>';
-//        var_dump($urlWithDocumentRoot, $this->publicPath, $url, $method, $route);
-//        print_r($_SERVER);
-//        echo '</pre>';
-
-//        if ($method === 'GET') {
-//            $fn = $this->gets[$route] ?? null;
-//        }
-//        if(isset($this->routes[$method][$route])) {
-//            $fn = $this->routes[$method][$route];
-//        } else {
-//            $fn = null;
-//        }
         $this->executeRoute($method, $route);
     }
 
@@ -261,8 +247,9 @@ class Router
      */
     protected function parseUrlIntoRoute(string $url): string {
         // Extramos la ruta a partir de la URL y el publicPath.
-        $urlWithDocumentRoot = $_SERVER['DOCUMENT_ROOT'] . $url;
-        return str_replace($this->publicPath, "", $urlWithDocumentRoot);
+        // Removemos el query string, si está presente.
+        $urlWithDocumentRoot = $this->removeQueryString($_SERVER['DOCUMENT_ROOT'] . $url);
+        return str_replace(self::$publicPath, "", $urlWithDocumentRoot);
     }
 
     /**
@@ -275,10 +262,18 @@ class Router
     {
         // El path siempre debería empezar con un barra. Para que el desarrollador no deba
         // preocuparse por siempre agregarla, vamos a detectar si falta esa barra, y agregarla.
-        if(strpos($path, '/') !== 0) {
-            $path = '/' . $path;
-        }
-        return self::$baseUrlPath . $path;
+        return self::$baseUrlPath . Str::prefixIfMissing($path, '/');
+    }
+
+    /**
+     * Genera una ruta a la carpeta public con el $path indicado.
+     *
+     * @param string $path
+     * @return string
+     */
+    public static function publicPath(string $path = ''): string
+    {
+        return self::$publicPath . Str::prefixIfMissing($path, '/');
     }
 
     /**
@@ -317,5 +312,18 @@ class Router
 //        print_r(self::$routeParameters);
 //        echo "</pre>";
         return self::$routeParameters;
+    }
+
+    /**
+     * @param string $urlWithDocumentRoot
+     * @return false|string
+     */
+    protected function removeQueryString(string $urlWithDocumentRoot)
+    {
+        $queryStringStart = strpos($urlWithDocumentRoot, '?');
+        if($queryStringStart !== false) {
+            $urlWithDocumentRoot = substr($urlWithDocumentRoot, 0, $queryStringStart);
+        }
+        return $urlWithDocumentRoot;
     }
 }

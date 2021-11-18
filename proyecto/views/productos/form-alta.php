@@ -13,7 +13,7 @@ use App\Models\Marca;
 
     <p>Completá el form a continuación para crear un producto.</p>
 
-    <form action="<?= \App\Router::urlTo('productos/nuevo');?>" method="post">
+    <form action="<?= \App\Router::urlTo('productos/nuevo');?>" method="post" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="nombre" class="form-label">Nombre</label>
             <input
@@ -114,6 +114,10 @@ use App\Models\Marca;
                 class="form-control"
                 <?= isset($errors['descripcion']) ? 'aria-describedby="error-descripcion"' : '';?>
             ><?= $oldData['descripcion'] ?? '';?></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="imagen" class="form-label">Imagen</label>
+            <input type="file" id="imagen" name="imagen" class="form-control">
         </div>
         <button type="submit" class="btn btn-primary">Grabar</button>
     </form>

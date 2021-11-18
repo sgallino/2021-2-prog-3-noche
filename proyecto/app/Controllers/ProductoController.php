@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 
+use App\Filesystem\FileUpload;
 use App\Models\Categoria;
 use App\Models\Marca;
 use App\Models\Producto;
@@ -16,9 +17,32 @@ class ProductoController
     public static function index()
     {
         $producto = new Producto();
-        $productos = $producto->all();
+
+        // Parámetros de búsqueda.
+        $whereConditions = [];
+        $searchValues = [];
+
+        // Filtramos los valores que llegan por GET y tienen valor (no están vacíos) para agregarlos al
+        // array de parámetros de búsqueda.
+        // Como pedimos en el método all(), cada parámetro de búsqueda debe cumplir con el formato:
+        // [campo, operador, valor]
+        // También guardamos en $searchValues los valores para poder re-poblarlos en el form para el
+        // usuario.
+        if(!empty($_GET['nombre'])) {
+            $searchValues['nombre'] = $_GET['nombre'];
+            $whereConditions[] = ['nombre', 'LIKE', '%' . $_GET['nombre'] . '%'];
+        }
+
+        if(!empty($_GET['id_categoria'])) {
+            $searchValues['id_categoria'] = $_GET['id_categoria'];
+            $whereConditions[] = ['id_categoria', '=', $_GET['id_categoria']];
+        }
+
+        $productos = $producto->all($whereConditions, [Marca::class, Categoria::class]);
+        // Traemos las categorías para el select del buscador.
+        $categorias = (new Categoria())->all();
         $view = new View();
-        $view->render('productos/index', ['productos' => $productos]);
+        $view->render('productos/index', ['productos' => $productos, 'categorias' => $categorias, 'searchValues' => $searchValues]);
     }
 
     public static function ver()
@@ -89,6 +113,15 @@ class ProductoController
             'descripcion'   => $_POST['descripcion'],
             'imagen'        => '',
         ];
+
+        // Upload de la imagen.
+        $imagen = $_FILES['imagen'];
+        if(!empty($imagen['tmp_name'])) {
+            $uploader = new FileUpload($_FILES['imagen']);
+            // TODO: Ajustar la ruta para que se obtenga de Router.
+//            $data['imagen'] = $uploader->save(__DIR__ . '/../../public/imgs');
+            $data['imagen'] = $uploader->save(Router::publicPath('/imgs/'));
+        }
 
 //        $producto = new Producto();
 //        $producto->create($data);

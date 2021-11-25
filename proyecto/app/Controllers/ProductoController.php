@@ -38,11 +38,17 @@ class ProductoController
             $whereConditions[] = ['id_categoria', '=', $_GET['id_categoria']];
         }
 
-        $productos = $producto->all($whereConditions, [Marca::class, Categoria::class]);
+//        $productos = $producto->all($whereConditions, [Marca::class, Categoria::class]);
+//        $productos = $producto->all($whereConditions, [Marca::class, Categoria::class], 10);
+        // Usamos una interfaz "fluida" (fluent) para encadenar métodos.
+        $productos = $producto
+            ->withPagination(10)
+            ->all($whereConditions, [Marca::class, Categoria::class]);
+        $paginacion = $producto->getPagination();
         // Traemos las categorías para el select del buscador.
         $categorias = (new Categoria())->all();
         $view = new View();
-        $view->render('productos/index', ['productos' => $productos, 'categorias' => $categorias, 'searchValues' => $searchValues]);
+        $view->render('productos/index', ['productos' => $productos, 'categorias' => $categorias, 'searchValues' => $searchValues, 'paginacion' => $paginacion]);
     }
 
     public static function ver()

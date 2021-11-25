@@ -11,6 +11,8 @@ require_once __DIR__ . "/../vendor/autoload.php";
 
 $basePath = realpath(__DIR__ . "/..");
 
+\App\Env\Loader::cargar($basePath);
+
 //echo "La ruta base es: " . $basePath . "<br>";
 
 //require_once __DIR__ . "/../app/Router.php";

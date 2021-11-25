@@ -3,17 +3,12 @@ namespace App\Database;
 
 // Esta clase representa una conexión a PDO en modo "Singleton".
 // "Singleton" es un patrón de diseño que indica que de una determinada clase solo puede existir un sola instancia por vez.
+use App\Env\Loader;
 use PDO;
 use PDOException;
 
 class Connection
 {
-    // Los métodos y propiedades "static" son aquellos que pertenecen a la clase y no a las instancias de la clase.
-    protected static $host = "127.0.0.1";
-    protected static $user = "root";
-    protected static $pass = "";
-    protected static $base = "cwm_2020_2_n";
-
     /** @var PDO - Instancia singleton de PDO. */
     protected static $db;
 
@@ -29,7 +24,12 @@ class Connection
         // "self" es una keyword que hace referencia a la clase en la que estamos.
         if(self::$db === null) {
             try {
-                self::$db = new PDO("mysql:host=" . self::$host . ";dbname=" . self::$base . ";charset=utf8mb4", self::$user, self::$pass);
+                // Leemos los datos de la conexión de las variables de entorno.
+                $host = Loader::getValue('DB_HOST');
+                $base = Loader::getValue('DB_NAME');
+                $user = Loader::getValue('DB_USER');
+                $pass = Loader::getValue('DB_PASS');
+                self::$db = new PDO("mysql:host=" . $host . ";dbname=" . $base . ";charset=utf8mb4", $user, $pass);
 //                echo "Conexión a la base de datos inicializada...<br>";
                 // A partir de php 8+, cuando una consulta SQL falla por defecto lanza una PDOException.
                 // En las versiones anteriores, por defecto php no imprimía nada, sino que "fallaba

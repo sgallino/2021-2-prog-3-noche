@@ -48,6 +48,64 @@ class Model
     ];
 
     /**
+     * @var array - La data de la paginación.
+     */
+    protected $pagination = [
+        'usandoPaginacion' => false,
+        'porPagina' => null,
+        'total' => null,
+        'registroInicial' => null, // El primer valor del LIMIT.
+        'paginas' => null,
+        'paginaActual' => 1,
+    ];
+
+    /**
+     * @param int $porPagina
+     * @return static
+     */
+    public function withPagination(int $porPagina = 10): self
+    {
+        $this->pagination['usandoPaginacion'] = true;
+        $this->pagination['porPagina'] = $porPagina;
+        // Buscamos por GET el parámetro de la página, que debería ser 'p'.
+        $this->pagination['paginaActual'] = (int) ($_GET['p'] ?? 1);
+        // Calculamos el primer valor del LIMIT, multiplicando la página actual por la cantidad de
+        // registros por página.
+        // Nota: Como la página empieza en 1, tenemos que restar al resultado de la multiplicación la
+        // cantidad de registros por página. El motivo es que si hacemos la cuenta, por ejemplo para
+        // la página 1, sin esa resta queda:
+        //  1 * 10 = 10
+        // Cuando necesitamos que sea 0, que es de donde empiezan los resultados.
+        //  (1 * 10) - 10 = 0
+        $this->pagination['registroInicial'] = ($porPagina * $this->pagination['paginaActual']) - $porPagina;
+
+        // Retornamos la propia instancia para poder permitir encadenar otros métodos a éste.
+        return $this;
+    }
+
+    /**
+     * Prepara y ejecuta el query para obtener el total de registros para el $query.
+     *
+     * @param string $query - Fragmento del query que deba modificar lo que sigue al FROM.
+     * @param array $whereValues - Los valores para el execute en base a lo que agregue el $query.
+     */
+    protected function ejecutarQueryPaginacion(string $query = "", array $whereValues = [])
+    {
+        $db = Connection::getConnection();
+        $query = "SELECT COUNT(*) AS total FROM " . $this->table . " " . $query;
+        $stmt = $db->prepare($query);
+        $stmt->execute($whereValues);
+        // Como es una consulta por una columna de sumatoria (COUNT) sin una cláusula GROUP BY, solo
+        // puede haber un resultado.
+        $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->pagination['total'] = $resultado['total'];
+        // Calculamos el total de páginas.
+        // Esto lo obtenemos diviendo el total de registros por la cantidad que mostramos por página,
+        // redondeando para arriba (con la función ceil).
+        $this->pagination['paginas'] = ceil($resultado['total'] / $this->pagination['porPagina']);
+    }
+
+    /**
      * Obtiene todos los productos.
      *
      * @param array $where - Las cláusulas de búsqueda. Cada valor del array debe ser un array de 3 posiciones: campo, operador, valor. Ej: ['nombre', 'LIKE', '%TV%'] o ['categoria_id', '=', 2].
@@ -61,6 +119,7 @@ class Model
 
         // Cláusulas de búsqueda.
         $whereValues = [];
+        $queryWhere = "";
         if(count($where) > 0) {
             $whereData = [];
             foreach($where as $whereItem) {
@@ -76,7 +135,20 @@ class Model
             }
 
             // Agregamos la cláusula del WHERE al query.
-            $query .= " WHERE " . implode(" AND ", $whereData);
+            // La parte del WHERE la separamos en una variable aparte para poder, si hace falta,
+            // agregarla al query del total de registros para la paginación.
+            $queryWhere = " WHERE " . implode(" AND ", $whereData);
+            $query .= $queryWhere;
+        }
+
+        // Preguntamos si hay que usar una paginación.
+        if($this->pagination['usandoPaginacion']) {
+            // Necesitamos armar un segundo query para obtener los resultados totales, y calcular la
+            // cantidad de páginas, y agregar el LIMIT a la consulta principal.
+            $this->ejecutarQueryPaginacion($queryWhere, $whereValues);
+
+            // Agregamos el LIMIT
+            $query .= " LIMIT " . $this->pagination['registroInicial'] . ", " . $this->pagination['porPagina'];
         }
 
         $stmt = $db->prepare($query);
@@ -352,5 +424,13 @@ class Model
                   WHERE " . $this->primaryKey . " = ?";
         $stmt = $db->prepare($query);
         $stmt->execute([$pk]);
+    }
+
+    /**
+     * @return array
+     */
+    public function getPagination(): array
+    {
+        return $this->pagination;
     }
 }

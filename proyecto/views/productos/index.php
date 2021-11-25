@@ -7,6 +7,7 @@ use App\Router;
 /** @var Producto[] $productos */
 /** @var Categoria[] $categorias */
 /** @var array $searchValues */
+/** @var array $paginacion */
 
 $auth = new Auth;
 ?>
@@ -82,4 +83,66 @@ $auth = new Auth;
         endforeach; ?>
         </tbody>
     </table>
+
+    <?php
+    // Agregamos el paginador solamente si hay páginas.
+    if($paginacion['paginas'] > 1):
+        // Creamos una variable con la URL de base para este documento, incluyendo el parámetro para
+        // la página.
+        $url = App\Router::urlTo('productos') . "?p=";
+    ?>
+    <nav aria-label="Páginas de resultados">
+        <ul class="pagination">
+        <?php
+        if($paginacion['paginaActual'] > 1):
+        ?>
+            <li class="page-item">
+                <a class="page-link" href="<?= $url . ($paginacion['paginaActual'] - 1);?>" aria-label="Página anterior">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        <?php
+        else:
+        ?>
+            <li class="page-item disabled" aria-label="Página anterior">
+                <span class="page-link"><span aria-hidden="true">&laquo;</span></span>
+            </li>
+        <?php
+        endif;
+
+        // Generamos el listado de páginas.
+        for($i = 1; $i <= $paginacion['paginas']; $i++):
+            if($paginacion['paginaActual'] != $i):
+        ?>
+            <li class="page-item"><a class="page-link" href="<?= $url . $i;?>"><?= $i;?></a></li>
+        <?php
+            else:
+        ?>
+            <li class="page-item active" aria-current="page"><span class="page-link"><?= $i;?></span></li>
+        <?php
+            endif;
+        ?>
+        <?php
+        endfor;
+
+        if($paginacion['paginaActual'] < $paginacion['paginas']):
+        ?>
+            <li class="page-item">
+                <a class="page-link" href="<?= $url . ($paginacion['paginaActual'] + 1);?>" aria-label="Página siguiente">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        <?php
+        else:
+        ?>
+            <li class="page-item disabled" aria-label="Página siguiente">
+                <span class="page-link"><span aria-hidden="true">&raquo;</span></span>
+            </li>
+        <?php
+        endif;
+        ?>
+        </ul>
+    </nav>
+    <?php
+    endif; ?>
 </main>

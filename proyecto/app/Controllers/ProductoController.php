@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 
+use App\Auth\Auth;
 use App\Filesystem\FileUpload;
 use App\Models\Categoria;
 use App\Models\Marca;
@@ -14,6 +15,21 @@ use App\View;
 
 class ProductoController
 {
+    /**
+     * @var Auth
+     */
+    protected static $auth;
+
+    /**
+     * @var string[][] Reglas de validación.
+     */
+    protected static $rules = [
+        'nombre'        => ['required', 'min:3'],
+        'id_marca'      => ['required', 'numeric'],
+        'id_categoria'  => ['required', 'numeric'],
+        'precio'        => ['required', 'numeric'],
+    ];
+
     public static function index()
     {
         $producto = new Producto();
@@ -43,6 +59,10 @@ class ProductoController
         // Usamos una interfaz "fluida" (fluent) para encadenar métodos.
         $productos = $producto
             ->withPagination(10)
+            // Ejemplos de cómo podrían ser los otros métodos usando una interfaz fluida.
+//            ->where($whereConditions)
+//            ->withRelations([Marca::class, Categoria::class])
+//            ->all();
             ->all($whereConditions, [Marca::class, Categoria::class]);
         $paginacion = $producto->getPagination();
         // Traemos las categorías para el select del buscador.
@@ -71,14 +91,14 @@ class ProductoController
 
     public static function crearForm()
     {
+        self::requireAuthetication();
+
         // Levantamos los mensajes de error y los datos viejos, si es que existen.
         $errors = Session::flash('errors', []);
         $oldData = Session::flash('old_data', [
             'id_categoria' => '',
             'id_marca' => '',
         ]);
-//        $marca = new Marca();
-//        $marcas = $marca->all();
         $marcas = (new Marca())->all();
         $categorias = (new Categoria())->all();
         $view = new View();
@@ -87,6 +107,8 @@ class ProductoController
 
     public static function crear()
     {
+        self::requireAuthetication();
+
         // El Validator recibe 2 parámetros en su constructor:
         // 1. array - La data a validar.
         // 2. array - Las "reglas" de validación.
@@ -97,12 +119,7 @@ class ProductoController
         // En el array de "regla", las "keys" deben coincidir con keys del array de datos, y los valores
         // van a ser arrays que contenga la lista de reglas a aplicar sobre el valor de esa key.
         // Las reglas, por supuesto, deben estar pre-definidas por la clase de Validación.
-        $validator = new Validator($_POST, [
-            'nombre'        => ['required', 'min:3'],
-            'id_marca'      => ['required', 'numeric'],
-            'id_categoria'  => ['required', 'numeric'],
-            'precio'        => ['required', 'numeric'],
-        ]);
+        $validator = new Validator($_POST, self::$rules);
 
         if($validator->fails()) {
             Session::set('old_data', $_POST);
@@ -124,8 +141,6 @@ class ProductoController
         $imagen = $_FILES['imagen'];
         if(!empty($imagen['tmp_name'])) {
             $uploader = new FileUpload($_FILES['imagen']);
-            // TODO: Ajustar la ruta para que se obtenga de Router.
-//            $data['imagen'] = $uploader->save(__DIR__ . '/../../public/imgs');
             $data['imagen'] = $uploader->save(Router::publicPath('/imgs/'));
         }
 
@@ -147,8 +162,83 @@ class ProductoController
         }
     }
 
+    public static function editarForm()
+    {
+        self::requireAuthetication();
+
+        $params = Router::getRouteParameters();
+        $producto = (new Producto())->findByPk($params['id']);
+
+        $marcas = (new Marca())->all();
+        $categorias = (new Categoria())->all();
+
+        $errors = Session::flash('errors', []);
+        $oldData = Session::flash('old_data', [
+            'nombre' => $producto->getNombre(),
+            'precio' => $producto->getPrecio(),
+            'descripcion' => $producto->getDescripcion(),
+            'id_categoria' => $producto->getIdCategoria(),
+            'id_marca' => $producto->getIdMarca(),
+        ]);
+
+        $view = new View();
+        $view->render('productos/form-editar', [
+            'producto'      => $producto,
+            'marcas'        => $marcas,
+            'categorias'    => $categorias,
+            'errors'        => $errors,
+            'oldData'       => $oldData,
+        ]);
+    }
+
+    public static function editar()
+    {
+        self::requireAuthetication();
+
+        $params = Router::getRouteParameters();
+        $id = $params['id'];
+
+        $validator = new Validator($_POST, self::$rules);
+
+        if($validator->fails()) {
+            Session::set('old_data', $_POST);
+            Session::set('errors', $validator->getErrors());
+            // Redireccionamos al form de nuevo...
+            Router::redirect('productos/' . $id . '/editar');
+        }
+
+        $producto = (new Producto())->findByPk($id);
+
+        $data = [
+            'nombre' => $_POST['nombre'],
+            'id_marca' => $_POST['id_marca'],
+            'id_categoria' => $_POST['id_categoria'],
+            'precio' => $_POST['precio'],
+            'descripcion' => $_POST['descripcion'],
+            'imagen' => $producto->getImagen(), // Por defecto, asumimos que va a mantener la imagen actual.
+        ];
+
+        if(!empty($_FILES['imagen']['tmp_name'])) {
+            $uploader = new FileUpload($_FILES['imagen']);
+            $data['imagen'] = $uploader->save(Router::publicPath('/imgs/'));
+        }
+
+        try {
+            (new Producto)->update($id, $data);
+            Session::set('message_success', 'El producto <b>' . $producto->getNombre() . '</b> se editó correctamente.');
+            Router::redirect('productos');
+        } catch(\Exception $e) {
+            Session::set('message_error', "Ocurrió un error inesperado al tratar de editar el producto.");
+            Session::set('old_data', $_POST);
+            // Redireccionamos al form de nuevo...
+            Router::redirect('productos/' . $id . '/editar');
+        }
+    }
+
     public static function eliminar()
     {
+        self::requireAuthetication();
+
         $params = Router::getRouteParameters();
 
         try {
@@ -160,5 +250,18 @@ class ProductoController
         }
 
         Router::redirect('productos');
+    }
+
+    /**
+     * Verifica que el usuario esté autenticado.
+     * De no estarlo, lo redirecciona automáticamente al iniciar sesión.
+     */
+    protected static function requireAuthetication()
+    {
+        self::$auth = new Auth();
+        if(!self::$auth->isAuthenticated()) {
+            Session::set('message_error', "Tenés que iniciar sesión antes de poder acceder a esta pantalla.");
+            Router::redirect('iniciar-sesion');
+        }
     }
 }

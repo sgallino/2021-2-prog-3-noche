@@ -415,6 +415,44 @@ class Model
 
     /**
      * @param $pk
+     * @param array $data
+     * @throws \PDOException
+     */
+    public function update($pk, array $data)
+    {
+        $updateFields = $this->getUpdateFields($data);
+
+        $query = "UPDATE " . $this->table . "
+                SET " . implode(', ', $updateFields) . "
+                WHERE id_producto = :id";
+        $db = Connection::getConnection();
+        $stmt = $db->prepare($query);
+
+        // Agregamos el id aparte del resto de los datos, ya que este lo agregamos a mano en el query.
+        $data['id'] = $pk;
+        $stmt->execute($data);
+    }
+
+    /**
+     * Array para el SET del UPDATE, donde cada campo define un holder con el mismo nombre.
+     * Retorna cada ítem con el formato "{$key} = :{$key}", usando para $key las claves del array
+     * $data.
+     *
+     * @param array $data
+     * @return array
+     */
+    protected function getUpdateFields(array $data): array
+    {
+        $output = [];
+        foreach($data as $key => $value) {
+            // Ej: nombre = :nombre
+            $output[] = "{$key} = :{$key}";
+        }
+        return $output;
+    }
+
+    /**
+     * @param $pk
      * @throws \PDOException
      */
     public function delete($pk): void

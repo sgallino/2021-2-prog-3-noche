@@ -50,6 +50,8 @@ $router->post('/cerrar-sesion', [AuthController::class, 'logout']);
 $router->get('/productos', [ProductoController::class, 'index']);
 $router->get('/productos/nuevo', [ProductoController::class, 'crearForm']);
 $router->post('/productos/nuevo', [ProductoController::class, 'crear']);
+$router->get('/productos/{id}/editar', [ProductoController::class, 'editarForm']);
+$router->post('/productos/{id}/editar', [ProductoController::class, 'editar']);
 $router->post('/productos/{id}/eliminar', [ProductoController::class, 'eliminar']);
 // Entre {} vamos a definir los "parámetros" de las rutas.
 // Un parámetro es un valor que es dinámico, y que queremos poder obtener luego para manipularlo.

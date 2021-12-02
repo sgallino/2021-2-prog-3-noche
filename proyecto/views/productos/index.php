@@ -73,10 +73,17 @@ $auth = new Auth;
                 <td><?= $producto->getCategoria()->getNombre();?></td>
                 <td>$ <?= $producto->getPrecio();?></td>
                 <td>
-                    <a href="<?= Router::urlTo('productos/' . $producto->getIdProducto());?>">Ver</a>
+                    <a class="btn btn-outline-primary" href="<?= Router::urlTo('productos/' . $producto->getIdProducto());?>">Ver</a>
+                <?php
+                if($auth->isAuthenticated()):
+                ?>
+                    <a class="btn btn-outline-secondary" href="<?= Router::urlTo('productos/' . $producto->getIdProducto() . "/editar");?>">Editar</a>
                     <form action="<?= Router::urlTo('productos/' . $producto->getIdProducto() . "/eliminar");?>" method="post">
                         <button class="btn btn-outline-danger">Eliminar</button>
                     </form>
+                <?php
+                endif;
+                ?>
                 </td>
             </tr>
         <?php
@@ -89,7 +96,18 @@ $auth = new Auth;
     if($paginacion['paginas'] > 1):
         // Creamos una variable con la URL de base para este documento, incluyendo el parámetro para
         // la página.
-        $url = App\Router::urlTo('productos') . "?p=";
+        // Esto debe incluir los valores de búsqueda, de haberlos.
+        $url = App\Router::urlTo('productos') . "?";
+
+        if(count($searchValues) > 0) {
+            foreach($searchValues as $key => $value) {
+//                $url .= $key . "=" . $value . "&";
+//                $url .= "$key=$value&";
+                $url .= "{$key}={$value}&";
+            }
+        }
+
+        $url .= "p=";
     ?>
     <nav aria-label="Páginas de resultados">
         <ul class="pagination">

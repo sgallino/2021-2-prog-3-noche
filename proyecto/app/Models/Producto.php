@@ -47,12 +47,6 @@ class Producto extends Model
      */
     protected $marca;
 
-    public function update($data)
-    {
-        $db = Connection::getConnection();
-        // TODO: implementar...
-    }
-
     /**
      * @return mixed
      */

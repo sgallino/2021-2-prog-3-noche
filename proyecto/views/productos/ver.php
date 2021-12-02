@@ -7,7 +7,6 @@ use App\Router;
     <h1><?= $producto->getNombre();?></h1>
 
     <?php
-    // TODO: Hacer un método en Router para la ruta de public
     if(!empty($producto->getImagen()) && file_exists(Router::publicPath('/imgs/' . $producto->getImagen()))):
         // TODO: Agregar un campo en la tabla para guardar un alt para la imagen.
     ?>
